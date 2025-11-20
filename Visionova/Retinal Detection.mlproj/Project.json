@@ -1,0 +1,29 @@
+{
+  "activityEntities" : [
+    "projectCreated",
+    [
+      {
+        "createdDate" : "2025-10-10T14:55:44Z",
+        "event" : "projectCreated",
+        "id" : "5989ABCB-A587-4304-B943-3C2862338589",
+        "subtitle" : "Retinal Detection",
+        "title" : "Project Created"
+      }
+    ]
+  ],
+  "authorName" : "Atharva Gour",
+  "createdDate" : "2025-10-10T14:55:44Z",
+  "description" : "",
+  "id" : "9D6976EA-4657-4DA5-9EDD-94A3AF4C3F21",
+  "license" : "",
+  "location" : "",
+  "modifiedDate" : "2025-10-10T14:55:44Z",
+  "projectName" : "Retinal Detection",
+  "settingsEntity" : {
+    "snapshotOnExtendTraining" : true,
+    "snapshotOnResumeTraining" : false
+  },
+  "taskType" : "imageClassifier",
+  "title" : "Image Classification",
+  "version" : "1.1"
+}

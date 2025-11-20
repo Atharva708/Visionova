@@ -1,0 +1,37 @@
+{
+  "activityEntities" : [
+    "dataSourceCreated",
+    [
+      {
+        "createdDate" : "2025-10-10T14:55:55Z",
+        "event" : "dataSourceCreated",
+        "id" : "83C0CCD8-789D-492E-9EEC-415AB2356C1E",
+        "subtitle" : "Dataset",
+        "title" : "Data Source Created"
+      }
+    ]
+  ],
+  "createdDate" : "2025-10-10T14:55:55Z",
+  "dataPathRelativeToProjectURL" : "../../../Downloads/Dataset/",
+  "dataResult" : {
+    "createdDate" : "2025-10-10T14:55:55Z",
+    "dataSourceID" : "BA99CF3D-6FA2-4DEF-AECC-0F59442C9073",
+    "dataURL" : "file:///Users/atharvagour/Downloads/Dataset/",
+    "error" : {
+      "code" : 0,
+      "domain" : "com.apple.CreateML.xpc",
+      "errorType" : "error",
+      "reason" : "Missing data for label train. Detailed list of labels missing files: [\"train\", \"test\"]."
+    }
+  },
+  "dataURL" : "file:///Users/atharvagour/Downloads/Dataset/",
+  "experimentIDs" : [
+    "5ACEC391-E393-48A8-AA2A-14F61E20C342"
+  ],
+  "id" : "BA99CF3D-6FA2-4DEF-AECC-0F59442C9073",
+  "modifiedDate" : "2025-10-28T12:59:37Z",
+  "pathType" : 0,
+  "preferredFilename" : "Dataset",
+  "title" : "Dataset",
+  "version" : "1.0"
+}
