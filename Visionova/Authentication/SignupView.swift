@@ -56,7 +56,7 @@ struct SignupView: View {
             await appState.sessionStore.signUp(email: email, password: password)
             guard let session = appState.sessionStore.session else { return }
             do {
-                try await userService.ensureUserExists(session.user)
+                try await userService.ensureUserExists(session: session)
             } catch {
                 await MainActor.run {
                     appState.sessionStore.errorMessage = error.localizedDescription
@@ -65,7 +65,7 @@ struct SignupView: View {
             }
             await MainActor.run {
                 isPresented = false
-                appState.onboardingManager.reset()
+                appState.onboardingManager.finish()
                 appState.selectedTab = .home
             }
         }

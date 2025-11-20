@@ -16,12 +16,13 @@ final class HistoryViewModel: ObservableObject {
     }
 
     func loadHistory() async {
-        guard let userId = sessionStore.session?.user.id else { return }
+        guard let session = sessionStore.session else { return }
+        let userId = session.user.id
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let request = try SupabaseTable.scans(userId: userId).urlRequest()
+            let request = try SupabaseTable.scans(userId: userId).urlRequest(accessToken: session.accessToken)
             let (data, _) = try await URLSession.shared.data(for: request)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
@@ -32,7 +33,8 @@ final class HistoryViewModel: ObservableObject {
     }
 
     func delete(record: SupabaseScanRecord) async {
-        guard let userId = sessionStore.session?.user.id else { return }
+        guard let session = sessionStore.session else { return }
+        let userId = session.user.id
         do {
             var components = URLComponents(url: config.baseURL.appending(path: "/rest/v1/scans"), resolvingAgainstBaseURL: false)
             components?.queryItems = [
@@ -42,7 +44,7 @@ final class HistoryViewModel: ObservableObject {
             guard let url = components?.url else { return }
             var request = URLRequest(url: url)
             request.httpMethod = "DELETE"
-            request.setValue("Bearer \(config.anonKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
             request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
             _ = try await URLSession.shared.data(for: request)
             scans.removeAll { $0.id == record.id }

@@ -51,9 +51,9 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func fetchLastScan() async {
-        guard let userId = sessionStore.session?.user.id else { return }
+        guard let session = sessionStore.session else { return }
         do {
-            let request = try SupabaseTable.scans(userId: userId).urlRequest()
+            let request = try SupabaseTable.scans(userId: session.user.id).urlRequest(accessToken: session.accessToken, limit: 1)
             let (data, _) = try await URLSession.shared.data(for: request)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601

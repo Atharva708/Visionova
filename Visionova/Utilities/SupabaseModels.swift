@@ -21,7 +21,7 @@ struct SupabaseScanRecord: Codable, Identifiable, Hashable {
 enum SupabaseTable {
     case scans(userId: UUID)
 
-    func urlRequest(limit: Int = 50) throws -> URLRequest {
+    func urlRequest(accessToken: String, limit: Int = 50) throws -> URLRequest {
         let config = SupabaseConfiguration()
         switch self {
         case .scans(let userId):
@@ -29,11 +29,12 @@ enum SupabaseTable {
             components?.queryItems = [
                 URLQueryItem(name: "user_id", value: "eq.\(userId.uuidString)"),
                 URLQueryItem(name: "select", value: "*"),
-                URLQueryItem(name: "limit", value: "\(limit)")
+                URLQueryItem(name: "limit", value: "\(limit)"),
+                URLQueryItem(name: "order", value: "created_at.desc")
             ]
             guard let url = components?.url else { throw URLError(.badURL) }
             var request = URLRequest(url: url)
-            request.setValue("Bearer \(config.anonKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
             request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
             return request
         }

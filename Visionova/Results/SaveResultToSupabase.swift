@@ -19,11 +19,11 @@ struct SaveResultPayload: Codable {
 final class SaveResultToSupabase {
     private let config = SupabaseConfiguration()
 
-    func save(userId: UUID, prediction: RetinaPrediction, image: UIImage?) async throws {
+    func save(userId: UUID, accessToken: String, prediction: RetinaPrediction, image: UIImage?) async throws {
         let url = config.baseURL.appending(path: "/rest/v1/scans")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(config.anonKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let payload = SaveResultPayload(

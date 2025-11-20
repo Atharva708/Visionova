@@ -18,14 +18,14 @@ final class ResultViewModel: ObservableObject {
     }
 
     func save() async {
-        guard let userId = sessionStore.session?.user.id else {
+        guard let session = sessionStore.session else {
             saveMessage = "You must be signed in to save scans."
             return
         }
         isSaving = true
         defer { isSaving = false }
         do {
-            try await saver.save(userId: userId, prediction: prediction, image: image)
+            try await saver.save(userId: session.user.id, accessToken: session.accessToken, prediction: prediction, image: image)
             saveMessage = "Saved to Supabase"
         } catch {
             saveMessage = error.localizedDescription

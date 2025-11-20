@@ -71,7 +71,9 @@ struct OnboardingView: View {
         case .welcome:
             return appState.onboardingManager.hasAcceptedTerms
         case .permissions:
-            return appState.onboardingManager.cameraGranted && appState.onboardingManager.photoGranted && appState.onboardingManager.healthGranted
+            return appState.onboardingManager.cameraGranted &&
+            appState.onboardingManager.photoGranted &&
+            (appState.onboardingManager.healthGranted || appState.onboardingManager.healthOptional)
         case .summary:
             return true
         }
@@ -79,7 +81,8 @@ struct OnboardingView: View {
 
     private func advance() {
         if appState.onboardingManager.currentStep == .summary {
-            appState.onboardingManager.next()
+            appState.onboardingManager.finish()
+            appState.selectedTab = .home
         } else {
             appState.onboardingManager.next()
         }

@@ -16,15 +16,37 @@ struct PermissionsRequestView: View {
             permissionRow(icon: "photo.on.rectangle", title: "Photos", granted: appState.onboardingManager.photoGranted) {
                 await requestPhotos()
             }
-            permissionRow(icon: "heart.fill", title: "HealthKit", granted: appState.onboardingManager.healthGranted) {
+            permissionRow(
+                icon: "heart.fill",
+                title: "HealthKit",
+                granted: appState.onboardingManager.healthGranted,
+                supplementalLabel: appState.onboardingManager.healthOptional ? "Optional" : nil
+            ) {
                 await requestHealthKit()
+            }
+            if !appState.onboardingManager.healthOptional {
+                Button("Skip HealthKit for now") {
+                    appState.onboardingManager.skipHealthKit()
+                }
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.bordered)
+            } else {
+                Text("You can enable HealthKit anytime in Settings.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
         }
         .padding()
     }
 
-    private func permissionRow(icon: String, title: String, granted: Bool, action: @escaping () async -> Void) -> some View {
+    private func permissionRow(
+        icon: String,
+        title: String,
+        granted: Bool,
+        supplementalLabel: String? = nil,
+        action: @escaping () async -> Void
+    ) -> some View {
         HStack {
             Image(systemName: icon)
                 .font(.title2)
@@ -35,6 +57,11 @@ struct PermissionsRequestView: View {
                 Text(granted ? "Granted" : "Tap to enable")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                if let supplementalLabel {
+                    Text(supplementalLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             Spacer()
             Button(granted ? "Done" : "Allow") {
@@ -58,11 +85,17 @@ struct PermissionsRequestView: View {
     }
 
     private func requestHealthKit() async {
+        guard !appState.onboardingManager.healthOptional else { return }
         do {
             let granted = try await appState.healthKitManager.requestPermissions()
-            await MainActor.run { appState.onboardingManager.healthGranted = granted }
+            await MainActor.run {
+                appState.onboardingManager.healthGranted = granted
+                appState.onboardingManager.healthOptional = !granted
+            }
         } catch {
-            await MainActor.run { appState.onboardingManager.healthGranted = false }
+            await MainActor.run {
+                appState.onboardingManager.healthGranted = false
+            }
         }
     }
 }
