@@ -39,7 +39,6 @@ final class AVCaptureService: NSObject, ObservableObject {
     func capturePhoto(completion: @escaping (UIImage?) -> Void) {
         sessionQueue.async {
             let settings = AVCapturePhotoSettings()
-            settings.isAutoStillImageStabilizationEnabled = true
             self.completion = completion
             self.photoOutput.capturePhoto(with: settings, delegate: self)
         }
@@ -85,7 +84,7 @@ final class AVCaptureService: NSObject, ObservableObject {
 }
 
 extension AVCaptureService: AVCapturePhotoCaptureDelegate {
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+    nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard error == nil, let data = photo.fileDataRepresentation(), let image = UIImage(data: data) else {
             DispatchQueue.main.async { self.completion?(nil) }
             return

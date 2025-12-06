@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BD1E9AAB2EE3FB8B00A38DB2 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = BD1E9AAA2EE3FB8B00A38DB2 /* Auth */; };
+		BD1E9AAD2EE3FB8B00A38DB2 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = BD1E9AAC2EE3FB8B00A38DB2 /* Functions */; };
+		BD1E9AAF2EE3FB8B00A38DB2 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = BD1E9AAE2EE3FB8B00A38DB2 /* PostgREST */; };
+		BD1E9AB12EE3FB8B00A38DB2 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = BD1E9AB02EE3FB8B00A38DB2 /* Realtime */; };
+		BD1E9AB32EE3FB8B00A38DB2 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = BD1E9AB22EE3FB8B00A38DB2 /* Storage */; };
+		BD1E9AB52EE3FB8B00A38DB2 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = BD1E9AB42EE3FB8B00A38DB2 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		BD178AAE2ECF55C100FEB832 /* Visionova.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Visionova.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +32,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD1E9AAF2EE3FB8B00A38DB2 /* PostgREST in Frameworks */,
+				BD1E9AAD2EE3FB8B00A38DB2 /* Functions in Frameworks */,
+				BD1E9AB52EE3FB8B00A38DB2 /* Supabase in Frameworks */,
+				BD1E9AAB2EE3FB8B00A38DB2 /* Auth in Frameworks */,
+				BD1E9AB32EE3FB8B00A38DB2 /* Storage in Frameworks */,
+				BD1E9AB12EE3FB8B00A38DB2 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +80,12 @@
 			);
 			name = Visionova;
 			packageProductDependencies = (
+				BD1E9AAA2EE3FB8B00A38DB2 /* Auth */,
+				BD1E9AAC2EE3FB8B00A38DB2 /* Functions */,
+				BD1E9AAE2EE3FB8B00A38DB2 /* PostgREST */,
+				BD1E9AB02EE3FB8B00A38DB2 /* Realtime */,
+				BD1E9AB22EE3FB8B00A38DB2 /* Storage */,
+				BD1E9AB42EE3FB8B00A38DB2 /* Supabase */,
 			);
 			productName = Visionova;
 			productReference = BD178AAE2ECF55C100FEB832 /* Visionova.app */;
@@ -94,6 +115,9 @@
 			);
 			mainGroup = BD178AA52ECF55C100FEB832;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BD178AAF2ECF55C100FEB832 /* Products */;
 			projectDirPath = "";
@@ -273,7 +297,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = athavagou78.Visionova;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -313,7 +337,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.0.1;
+				MARKETING_VERSION = 0.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = athavagou78.Visionova;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -348,6 +372,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BD1E9AAA2EE3FB8B00A38DB2 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		BD1E9AAC2EE3FB8B00A38DB2 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		BD1E9AAE2EE3FB8B00A38DB2 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		BD1E9AB02EE3FB8B00A38DB2 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		BD1E9AB22EE3FB8B00A38DB2 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		BD1E9AB42EE3FB8B00A38DB2 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BD1E9AA92EE3FB8B00A38DB2 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BD178AA62ECF55C100FEB832 /* Project object */;
 }

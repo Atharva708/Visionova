@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Supabase
 
 @MainActor
 final class ResultViewModel: ObservableObject {
@@ -9,7 +10,6 @@ final class ResultViewModel: ObservableObject {
 
     let image: UIImage?
     private let sessionStore: SessionStore
-    private let saver = SaveResultToSupabase()
 
     init(prediction: RetinaPrediction, image: UIImage?, sessionStore: SessionStore) {
         self.prediction = prediction
@@ -24,8 +24,31 @@ final class ResultViewModel: ObservableObject {
         }
         isSaving = true
         defer { isSaving = false }
+
+        let uid = session.user.id.uuidString
+        let condition = EyeCondition(rawValue: prediction.label.lowercased()) ?? .other
+        let explanation = makeExplanation(label: condition, confidence: prediction.confidence, indicators: [])
+
         do {
-            try await saver.save(userId: session.user.id, accessToken: session.accessToken, prediction: prediction, image: image)
+            // Upload image if available
+            let imageUrl: String
+            if let image = image {
+                imageUrl = try await SupabaseService.shared.uploadImage(userId: uid, image: image)
+            } else {
+                imageUrl = ""
+            }
+
+            // Build insert payload according to Supabase scans schema
+            let insert = SupabaseService.InsertScan(
+                user_id: uid,
+                image_url: imageUrl,
+                prediction: prediction.label,
+                confidence: prediction.confidence,
+                explanation: explanation
+            )
+
+            // Insert the scan record
+            _ = try await SupabaseService.shared.insertScan(scan: insert)
             saveMessage = "Saved to Supabase"
         } catch {
             saveMessage = error.localizedDescription

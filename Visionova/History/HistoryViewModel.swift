@@ -3,12 +3,11 @@ import Combine
 
 @MainActor
 final class HistoryViewModel: ObservableObject {
-    @Published var scans: [SupabaseScanRecord] = []
+    @Published var scans: [SupabaseService.Scan] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
     private let sessionStore: SessionStore
-    private let config = SupabaseConfiguration()
 
     init(sessionStore: SessionStore) {
         self.sessionStore = sessionStore
@@ -16,38 +15,30 @@ final class HistoryViewModel: ObservableObject {
     }
 
     func loadHistory() async {
-        guard let session = sessionStore.session else { return }
-        let userId = session.user.id
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let request = try SupabaseTable.scans(userId: userId).urlRequest(accessToken: session.accessToken)
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            scans = try decoder.decode([SupabaseScanRecord].self, from: data).sorted(by: { $0.createdAt > $1.createdAt })
+            let items = try await SupabaseService.shared.fetchScans()
+            // Already ordered by created_at desc in service
+            scans = items
         } catch {
             errorMessage = error.localizedDescription
+            scans = []
         }
     }
 
-    func delete(record: SupabaseScanRecord) async {
-        guard let session = sessionStore.session else { return }
-        let userId = session.user.id
+    func delete(record: SupabaseService.Scan) async {
+        errorMessage = nil
         do {
-            var components = URLComponents(url: config.baseURL.appending(path: "/rest/v1/scans"), resolvingAgainstBaseURL: false)
-            components?.queryItems = [
-                URLQueryItem(name: "id", value: "eq.\(record.id.uuidString)"),
-                URLQueryItem(name: "user_id", value: "eq.\(userId.uuidString)")
-            ]
-            guard let url = components?.url else { return }
-            var request = URLRequest(url: url)
-            request.httpMethod = "DELETE"
-            request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
-            request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
-            _ = try await URLSession.shared.data(for: request)
-            scans.removeAll { $0.id == record.id }
+            let success = try await SupabaseService.shared.deleteScan(id: record.id)
+            guard success else {
+                errorMessage = "Failed to delete record"
+                return
+            }
+            if let idx = scans.firstIndex(where: { $0.id == record.id }) {
+                scans.remove(at: idx)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

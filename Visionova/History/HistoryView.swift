@@ -10,17 +10,15 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(viewModel.scans) { record in
-                    NavigationLink(value: record) {
+                ForEach(viewModel.scans, id: \.id) { scan in
+                    let record = mapToSupabaseScanRecord(scan)
+                    NavigationLink(destination: ReportDetailView(record: record)) {
                         ScanRecordCard(record: record)
                     }
                 }
                 .onDelete(perform: delete)
             }
             .listStyle(.plain)
-            .navigationDestination(for: SupabaseScanRecord.self) { record in
-                ReportDetailView(record: record)
-            }
             .navigationTitle("History")
             .refreshable { await viewModel.loadHistory() }
             .overlay {
@@ -34,9 +32,22 @@ struct HistoryView: View {
     private func delete(offsets: IndexSet) {
         Task {
             for index in offsets {
-                let record = viewModel.scans[index]
-                await viewModel.delete(record: record)
+                let scan = viewModel.scans[index]
+                await viewModel.delete(record: scan)
             }
         }
+    }
+
+    private func mapToSupabaseScanRecord(_ scan: SupabaseService.Scan) -> SupabaseScanRecord {
+        let createdAt: Date = ISO8601DateFormatter().date(from: scan.created_at) ?? Date()
+        let userUUID = UUID(uuidString: scan.user_id) ?? UUID()
+        return SupabaseScanRecord(
+            id: scan.id,
+            userId: userUUID,
+            imageUrl: scan.image_url.isEmpty ? nil : scan.image_url,
+            prediction: scan.prediction,
+            confidence: scan.confidence,
+            createdAt: createdAt
+        )
     }
 }
