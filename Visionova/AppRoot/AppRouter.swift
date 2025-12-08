@@ -66,7 +66,7 @@ private struct MainTabContainer: View {
                 }
                 .tag(AppState.MainTab.scan)
 
-            HistoryView(viewModel: HistoryViewModel(sessionStore: appState.sessionStore))
+            HistoryView()
                 .tabItem {
                     Label("History", systemImage: "clock.fill")
                 }

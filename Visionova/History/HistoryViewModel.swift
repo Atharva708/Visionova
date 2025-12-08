@@ -3,14 +3,11 @@ import Combine
 
 @MainActor
 final class HistoryViewModel: ObservableObject {
-    @Published var scans: [SupabaseService.Scan] = []
+    @Published var scans: [LocalScanRecord] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
 
-    private let sessionStore: SessionStore
-
-    init(sessionStore: SessionStore) {
-        self.sessionStore = sessionStore
+    init() {
         Task { await loadHistory() }
     }
 
@@ -18,29 +15,14 @@ final class HistoryViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        do {
-            let items = try await SupabaseService.shared.fetchScans()
-            // Already ordered by created_at desc in service
-            scans = items
-        } catch {
-            errorMessage = error.localizedDescription
-            scans = []
-        }
+        scans = LocalHistoryStore.shared.load()
     }
 
-    func delete(record: SupabaseService.Scan) async {
+    func delete(record: LocalScanRecord) async {
         errorMessage = nil
-        do {
-            let success = try await SupabaseService.shared.deleteScan(id: record.id)
-            guard success else {
-                errorMessage = "Failed to delete record"
-                return
-            }
-            if let idx = scans.firstIndex(where: { $0.id == record.id }) {
-                scans.remove(at: idx)
-            }
-        } catch {
-            errorMessage = error.localizedDescription
+        LocalHistoryStore.shared.delete(id: record.id)
+        if let idx = scans.firstIndex(where: { $0.id == record.id }) {
+            scans.remove(at: idx)
         }
     }
 }

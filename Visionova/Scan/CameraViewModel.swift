@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 
 /// Bridges the camera capture pipeline with CoreML inference.
 @MainActor
@@ -40,6 +41,18 @@ final class CameraViewModel: ObservableObject {
         errorMessage = nil
         do {
             prediction = try await modelManager.classifyRetina(image: image)
+            if let pred = prediction {
+                let normalized = pred.label.lowercased()
+                let condition = EyeCondition(rawValue: normalized)
+                    ?? (normalized == "healthy" ? .normal :
+                        normalized == "amd" ? .ageRelatedMacularDegeneration :
+                        normalized == "diabetic retinopathy" ? .diabeticRetinopathy :
+                        normalized == "age-related macular degeneration" ? .ageRelatedMacularDegeneration :
+                        normalized == "cataract" ? .cataract :
+                        normalized == "glaucoma" ? .glaucoma : .other)
+                let explanation = makeExplanation(label: condition, confidence: pred.confidence, indicators: [])
+                _ = LocalHistoryStore.shared.append(image: image, prediction: pred.label, confidence: pred.confidence, explanation: explanation)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
