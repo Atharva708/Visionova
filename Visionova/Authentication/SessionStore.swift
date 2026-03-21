@@ -1,15 +1,15 @@
 import Foundation
 import Combine
 
-/// Observable session state used across the app.
+/// Observable session state used across the app natively via LocalAuth.
 final class SessionStore: ObservableObject {
-    @Published private(set) var session: SupabaseSession?
+    @Published private(set) var session: LocalUserSession?
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
 
-    private let authManager: SupabaseAuthManager
+    private let authManager: LocalAuthManager
 
-    init(authManager: SupabaseAuthManager) {
+    init(authManager: LocalAuthManager) {
         self.authManager = authManager
     }
 
@@ -18,27 +18,13 @@ final class SessionStore: ObservableObject {
     }
 
     @MainActor
-    func signIn(email: String, password: String) async {
-        await authenticate { [self] in
-            try await self.authManager.signIn(email: email, password: password)
-        }
-    }
-
-    @MainActor
-    func signUp(email: String, password: String) async {
-        await authenticate { [self] in
-            try await self.authManager.signUp(email: email, password: password)
-        }
-    }
-
-    @MainActor
-    private func authenticate(_ action: @escaping () async throws -> SupabaseSession) async {
+    func signIn() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let session = try await action()
+            let session = try await authManager.authenticate()
             self.session = session
         } catch {
             errorMessage = error.localizedDescription
@@ -47,16 +33,11 @@ final class SessionStore: ObservableObject {
 
     @MainActor
     func signOut() async {
-        guard let token = session?.accessToken else { return }
         isLoading = true
         defer {
             isLoading = false
             session = nil
         }
-        do {
-            try await authManager.signOut(accessToken: token)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        // Local auth doesn't really "sign out" remotely, just clear the local session
     }
 }

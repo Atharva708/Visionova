@@ -15,7 +15,7 @@ final class ProfileViewModel: ObservableObject {
     }
 
     var email: String {
-        sessionStore.session?.user.email ?? "Unknown"
+        sessionStore.session?.email ?? "Unknown"
     }
 
     func importHealthKit() async {

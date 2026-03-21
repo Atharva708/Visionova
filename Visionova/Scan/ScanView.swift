@@ -5,6 +5,7 @@ struct ScanView: View {
     @StateObject var viewModel: CameraViewModel
     @State private var showCamera = false
     @State private var navigationPath = NavigationPath()
+    @State private var animateScan = false
 
     init(viewModel: CameraViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -12,74 +13,129 @@ struct ScanView: View {
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            VStack(spacing: 24) {
-                if let image = viewModel.capturedImage {
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 220)
-                        .cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(.purple.opacity(0.3), lineWidth: 2))
-                } else {
-                    Rectangle()
-                        .fill(Color(.secondarySystemBackground))
-                        .frame(height: 220)
-                        .overlay(Text("No image selected").foregroundStyle(.secondary))
-                        .cornerRadius(20)
-                }
-
-                VStack(spacing: 16) {
-                    Button {
-                        showCamera = true
-                    } label: {
-                        Label("Take Photo", systemImage: "camera.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue.gradient)
-                            .foregroundStyle(.white)
-                            .cornerRadius(16)
-                    }
-
-                    UploadImagePicker { image in
-                        Task { await viewModel.handleImage(image) }
-                    }
-                }
-
-                if viewModel.isProcessing {
-                    VStack(spacing: 12) {
-                        ProgressView("Analyzing image...")
-                        Text("This takes a few seconds")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemBackground)))
-                }
-
-                if let prediction = viewModel.prediction {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("AI Result")
-                            .font(.headline)
-                        Text(prediction.label)
-                            .font(.title2.bold())
-                        ProgressView(value: prediction.confidence)
-                        Text("Confidence: \(Int(prediction.confidence * 100))%")
-                        Button("View Report") {
-                            navigationPath.append(prediction)
+            ZStack {
+                Color(red: 0.05, green: 0.07, blue: 0.18).ignoresSafeArea()
+                
+                VStack(spacing: 32) {
+                    // Preview Area
+                    ZStack {
+                        if let image = viewModel.capturedImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 300)
+                                .clipShape(RoundedRectangle(cornerRadius: 32))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 32)
+                                        .stroke(LinearGradient(colors: [.cyan.opacity(0.5), .clear], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 2)
+                                )
+                        } else {
+                            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .frame(height: 300)
+                                .overlay(
+                                    VStack(spacing: 12) {
+                                        Image(systemName: "photo.on.rectangle.angled")
+                                            .font(.system(size: 48))
+                                            .foregroundStyle(.white.opacity(0.3))
+                                        Text("Select or take a photo")
+                                            .font(.headline)
+                                            .foregroundStyle(.white.opacity(0.5))
+                                    }
+                                )
                         }
-                        .buttonStyle(.borderedProminent)
+                        
+                        if viewModel.isProcessing {
+                            ZStack {
+                                Color.black.opacity(0.4)
+                                    .clipShape(RoundedRectangle(cornerRadius: 32))
+                                
+                                VStack(spacing: 20) {
+                                    Circle()
+                                        .trim(from: 0, to: 0.7)
+                                        .stroke(AngularGradient(colors: [.cyan, .blue, .purple], center: .center), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                                        .frame(width: 60, height: 60)
+                                        .rotationEffect(Angle(degrees: animateScan ? 360 : 0))
+                                        .onAppear {
+                                            withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) {
+                                                animateScan = true
+                                            }
+                                        }
+                                    
+                                    Text("Analyzing Retina...")
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                }
+                            }
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color(.secondarySystemBackground)))
-                }
+                    .padding(.horizontal)
+                    .padding(.top, 20)
 
-                Spacer()
+                    VStack(spacing: 20) {
+                        Button {
+                            showCamera = true
+                        } label: {
+                            Label("Take Photo", systemImage: "camera.fill")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(LinearGradient(colors: [.cyan, .blue], startPoint: .leading, endPoint: .trailing))
+                                .foregroundStyle(.white)
+                                .cornerRadius(24)
+                                .shadow(color: .blue.opacity(0.3), radius: 10, y: 5)
+                        }
+
+                        UploadImagePicker { image in
+                            Task { await viewModel.handleImage(image) }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.horizontal)
+
+                    if let prediction = viewModel.prediction {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Text("AI Result")
+                                    .font(.headline)
+                                    .foregroundStyle(.white.opacity(0.7))
+                                Spacer()
+                                Text("\(Int(prediction.confidence * 100))% Confidence")
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.cyan)
+                            }
+                            
+                            Text(prediction.label)
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white)
+                            
+                            Button {
+                                navigationPath.append(prediction)
+                            } label: {
+                                HStack {
+                                    Text("View Complete Report")
+                                        .fontWeight(.bold)
+                                    Image(systemName: "doc.text.fill")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .foregroundStyle(.white)
+                                .cornerRadius(16)
+                            }
+                        }
+                        .padding(24)
+                        .background(.ultraThinMaterial)
+                        .cornerRadius(32)
+                        .padding(.horizontal)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    Spacer()
+                }
             }
-            .padding()
             .navigationTitle("Scan")
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: RetinaPrediction.self) { prediction in
                 ScanResultView(viewModel: ResultViewModel(prediction: prediction, image: viewModel.capturedImage, sessionStore: appState.sessionStore))
             }

@@ -5,7 +5,7 @@ struct HistoryView: View {
     @StateObject private var viewModel = HistoryViewModel()
 
     private let conditionInfo: [String: (what: String, causes: String)] = [
-        "normal": (
+        "healthy": (
             what: "No abnormal findings detected in the retina.",
             causes: "Healthy retina without visible lesions, hemorrhages, or structural changes."
         ),
@@ -17,14 +17,6 @@ struct HistoryView: View {
             what: "Progressive optic nerve damage that can lead to vision loss.",
             causes: "Often related to elevated intraocular pressure; family history and age increase risk."
         ),
-        "age-related macular degeneration": (
-            what: "Degeneration of the macula affecting central vision.",
-            causes: "Aging, smoking, and genetic factors; drusen deposits and macular changes are typical."
-        ),
-        "amd": (
-            what: "Degeneration of the macula affecting central vision.",
-            causes: "Aging, smoking, and genetic factors; drusen deposits and macular changes are typical."
-        ),
         "cataract": (
             what: "Clouding of the eye’s natural lens causing blurry vision.",
             causes: "Aging, UV exposure, diabetes, and certain medications can accelerate lens clouding."
@@ -33,95 +25,139 @@ struct HistoryView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(viewModel.scans, id: \.id) { scan in
-                    NavigationLink {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 16) {
-                                if let path = scan.imagePath,
-                                   let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(path),
-                                   let uiImage = UIImage(contentsOfFile: url.path) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .cornerRadius(12)
-                                }
-
-                                Group {
-                                    Text(scan.prediction)
-                                        .font(.title.bold())
-                                    Text("Confidence: \(Int(scan.confidence * 100))%")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    Text(scan.createdAt, style: .date)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Divider()
-
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("AI Explanation")
-                                        .font(.headline)
-                                    Text(scan.explanation)
-                                        .font(.body)
-                                }
-
-                                let key = scan.prediction.lowercased()
-                                if let info = conditionInfo[key] {
-                                    Divider()
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("About this condition")
-                                            .font(.headline)
-                                        Text("What it is: \(info.what)")
-                                        Text("Probable causes: \(info.causes)")
-                                    }
-                                }
-                            }
-                            .padding()
+            ZStack {
+                Color(red: 0.05, green: 0.07, blue: 0.18).ignoresSafeArea()
+                
+                List {
+                    ForEach(viewModel.scans, id: \.id) { scan in
+                        NavigationLink {
+                            detailView(for: scan)
+                        } label: {
+                            localScanRow(for: scan)
                         }
-                    } label: {
-                        HStack(spacing: 12) {
-                            if let path = scan.imagePath,
-                               let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(path),
-                               let uiImage = UIImage(contentsOfFile: url.path) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 56, height: 56)
-                                    .clipped()
-                                    .cornerRadius(8)
-                            } else {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(.secondarySystemBackground))
-                                    .frame(width: 56, height: 56)
-                                    .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
-                            }
-                            VStack(alignment: .leading) {
-                                Text(scan.prediction).font(.headline)
-                                Text("Confidence: \(Int(scan.confidence * 100))%")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(scan.createdAt, style: .date)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
+                        .listRowBackground(Color.white.opacity(0.05))
                     }
+                    .onDelete(perform: delete)
                 }
-                .onDelete(perform: delete)
-            }
-            .listStyle(.plain)
-            .navigationTitle("History")
-            .refreshable { await viewModel.loadHistory() }
-            .overlay {
-                if viewModel.scans.isEmpty && !viewModel.isLoading {
-                    ContentUnavailableView("No scans", systemImage: "clock", description: Text("Run your first scan to build history."))
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .navigationTitle("History")
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .refreshable { await viewModel.loadHistory() }
+                .overlay {
+                    if viewModel.scans.isEmpty && !viewModel.isLoading {
+                        ContentUnavailableView {
+                            Label("No scans yet", systemImage: "clock.badge.exclamationmark")
+                        } description: {
+                            Text("Your scan history will appear here once you start analyzing.")
+                                .foregroundStyle(.white.opacity(0.6))
+                        }
+                    }
                 }
             }
         }
+    }
+
+    private func localScanRow(for scan: LocalScanRecord) -> some View {
+        HStack(spacing: 16) {
+            if let path = scan.imagePath,
+               let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(path),
+               let uiImage = UIImage(contentsOfFile: url.path) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 64, height: 64)
+                    .overlay(Image(systemName: "photo").foregroundStyle(.white.opacity(0.3)))
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(scan.prediction)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                
+                Text(scan.createdAt, style: .date)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            
+            Spacer()
+            
+            Text("\(Int(scan.confidence * 100))%")
+                .font(.system(size: 16, weight: .black, design: .rounded))
+                .foregroundStyle(.cyan)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func detailView(for scan: LocalScanRecord) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                if let path = scan.imagePath,
+                   let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent(path),
+                   let uiImage = UIImage(contentsOfFile: url.path) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 300)
+                        .clipShape(RoundedRectangle(cornerRadius: 32))
+                }
+
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(scan.prediction)
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                        
+                        Text("Analyzed on \(scan.createdAt.formatted(date: .complete, time: .shortened))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("AI INSIGHTS")
+                            .font(.system(size: 12, weight: .black))
+                            .tracking(1.5)
+                            .foregroundStyle(.cyan)
+                        
+                        Text(scan.explanation)
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .lineSpacing(4)
+                    }
+                    .padding(20)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(24)
+
+                    let key = scan.prediction.lowercased()
+                    if let info = conditionInfo[key] {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("MEDICAL CONTEXT")
+                                .font(.system(size: 12, weight: .black))
+                                .tracking(1.5)
+                                .foregroundStyle(.cyan)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("**What it is:** \(info.what)")
+                                Text("**Common causes:** \(info.causes)")
+                            }
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                        }
+                        .padding(20)
+                        .background(Color.blue.opacity(0.05))
+                        .cornerRadius(24)
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
+        }
+        .navigationTitle("Report Details")
+        .toolbarTitleDisplayMode(.inline)
     }
 
     private func delete(offsets: IndexSet) {

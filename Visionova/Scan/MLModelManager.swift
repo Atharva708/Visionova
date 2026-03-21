@@ -1,4 +1,7 @@
 import CoreML
+import Vision
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import SwiftUI
 import UIKit
 
@@ -9,7 +12,7 @@ struct RetinaPrediction: Identifiable, Hashable {
     let explanation: String
 }
 
-/// Handles CoreML preprocessing and inference for retina scans.
+/// Handles CoreImage preprocessing and Vision-based inference for retina scans.
 final class MLModelManager {
     private let explanations: [String: String] = [
         "Healthy": "No detectable lesions. Continue regular checkups.",
@@ -17,36 +20,97 @@ final class MLModelManager {
         "Glaucoma": "Optic nerve cupping observed. Monitor intraocular pressure."
     ]
 
-    func preprocess(image: UIImage) -> UIImage {
-        image
+    private let context = CIContext()
+
+    /// Uses CoreImage to auto-enhance the retinal image for better ML classification.
+    func autoEnhance(image: UIImage) -> UIImage {
+        guard let ciImage = CIImage(image: image) else { return image }
+        
+        // 1. Color Controls to boost contrast and subtle brightness
+        let filter = CIFilter.colorControls()
+        filter.inputImage = ciImage
+        filter.contrast = 1.15
+        filter.brightness = 0.05
+        filter.saturation = 1.1
+
+        // 2. Unsharp Mask to improve the visibility of blood vessels and microaneurysms
+        let unsharp = CIFilter.unsharpMask()
+        unsharp.inputImage = filter.outputImage
+        unsharp.radius = 2.5
+        unsharp.intensity = 0.6
+
+        guard let output = unsharp.outputImage,
+              let cgImage = context.createCGImage(output, from: output.extent) else {
+            return image
+        }
+        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
     }
 
-    func convertToPixelBuffer(image: UIImage) throws -> CVPixelBuffer {
-        guard let buffer = image.toPixelBuffer() else { throw ModelError.pixelBuffer }
-        return buffer
-    }
-
-    func predict(pixelBuffer: CVPixelBuffer) throws -> RetinaPrediction {
-        let model = try RetinaClassifier(configuration: MLModelConfiguration())
-        let output = try model.prediction(image: pixelBuffer)
-        let label = output.target
-        let probabilities = output.targetProbability
-        let confidence = probabilities[label] ?? probabilities.values.max() ?? 0
-        let explanation = explanations[label] ?? "Consult your doctor for a detailed analysis."
-        return RetinaPrediction(label: label, confidence: confidence, explanation: explanation)
-    }
-
+    /// Pre-process and run ML Inference on the enhanced image natively utilizing the Vision framework.
     func classifyRetina(image: UIImage) async throws -> RetinaPrediction {
-        let pixelBuffer = try convertToPixelBuffer(image: image)
-        return try predict(pixelBuffer: pixelBuffer)
+        return try await withCheckedThrowingContinuation { continuation in
+            do {
+                let config = MLModelConfiguration()
+                let model = try RetinaClassifier(configuration: config)
+                guard let visionModel = try? VNCoreMLModel(for: model.model) else {
+                    continuation.resume(throwing: ModelError.visionModel)
+                    return
+                }
+
+                let request = VNCoreMLRequest(model: visionModel) { [weak self] request, error in
+                    guard let self = self else { return }
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+
+                    if let results = request.results as? [VNClassificationObservation], let topResult = results.first {
+                        let label = topResult.identifier
+                        let confidence = Double(topResult.confidence)
+                        let explanation = self.explanations[label] ?? "Consult your doctor for a detailed analysis."
+                        
+                        let prediction = RetinaPrediction(label: label, confidence: confidence, explanation: explanation)
+                        continuation.resume(returning: prediction)
+                    } else {
+                        continuation.resume(throwing: ModelError.noResults)
+                    }
+                }
+                
+                // Crop to center mimicking typical camera/fundus perspectives
+                request.imageCropAndScaleOption = .centerCrop
+                
+                // Enhance before ML processing
+                let enhancedImage = self.autoEnhance(image: image)
+                guard let cgImage = enhancedImage.cgImage else {
+                    continuation.resume(throwing: ModelError.pixelBuffer)
+                    return
+                }
+
+                // Vision natively handles orientation automatically here
+                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        try handler.perform([request])
+                    } catch {
+                        continuation.resume(throwing: error)
+                    }
+                }
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
     }
 
     enum ModelError: LocalizedError {
         case pixelBuffer
-
+        case visionModel
+        case noResults
+        
         var errorDescription: String? {
             switch self {
-            case .pixelBuffer: return "Unable to create pixel buffer from image."
+            case .pixelBuffer: return "Unable to process the image for analysis."
+            case .visionModel: return "Failed to load Apple Vision ML Model."
+            case .noResults: return "No classification results found."
             }
         }
     }

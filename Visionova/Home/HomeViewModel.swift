@@ -51,37 +51,44 @@ final class HomeViewModel: ObservableObject {
     }
 
     private func fetchLastScan() async {
-        guard let session = sessionStore.session else { return }
-        do {
-            let request = try SupabaseTable.scans(userId: session.user.id).urlRequest(accessToken: session.accessToken, limit: 1)
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            let response = try decoder.decode([SupabaseScanRecord].self, from: data)
-            if let latest = response.sorted(by: { $0.createdAt > $1.createdAt }).first {
-                lastScan = ScanSummary(
-                    diagnosis: latest.prediction,
-                    confidence: latest.confidence,
-                    createdAt: latest.createdAt,
-                    recommendations: "Follow up with an eye specialist within 2 weeks."
-                )
-            }
-        } catch {
-            // Fallback to placeholder if Supabase read fails.
-            lastScan = ScanSummary(diagnosis: "Healthy", confidence: 0.92, createdAt: Date(), recommendations: "Keep monitoring monthly.")
+        if let latest = LocalHistoryStore.shared.load().first {
+            lastScan = ScanSummary(
+                diagnosis: latest.prediction,
+                confidence: latest.confidence,
+                createdAt: latest.createdAt,
+                recommendations: "Follow up with an eye specialist if symptoms persist."
+            )
         }
     }
 
     private func fetchHealthInsights() async {
         var insights: [HealthInsight] = []
+        
+        // 1. Sleep
         if let sleepHours = try? await healthKitManager.fetchSleep() {
-            insights.append(HealthInsight(title: "Sleep", value: String(format: "%.1f h", sleepHours), trend: sleepHours >= 7 ? "On track" : "Needs rest"))
+            insights.append(HealthInsight(title: "Sleep", value: String(format: "%.1f h", sleepHours), trend: sleepHours >= 7 ? "Optimal" : "Needs rest"))
         }
+        
+        // 2. Heart Rate
         if let heartRate = try? await healthKitManager.fetchHeartRate() {
-            insights.append(HealthInsight(title: "Heart Rate", value: String(format: "%.0f bpm", heartRate), trend: heartRate < 80 ? "Calm" : "Elevated"))
+            insights.append(HealthInsight(title: "Heart Rate", value: String(format: "%.0f bpm", heartRate), trend: heartRate < 80 ? "Stable" : "Elevated"))
         }
+
+        // 3. Blood Glucose (New)
+        if let glucose = try? await healthKitManager.fetchBloodGlucose(), glucose > 0 {
+            let trend = glucose < 140 ? "Normal" : "High (Alert)"
+            insights.append(HealthInsight(title: "Blood Glucose", value: String(format: "%.0f mg/dL", glucose), trend: trend))
+        }
+
+        // 4. Blood Pressure (New)
+        if let bp = try? await healthKitManager.fetchBloodPressure(), bp.systolic > 0 {
+            let value = String(format: "%.0f/%.0f", bp.systolic, bp.diastolic)
+            let trend = bp.systolic < 130 ? "Healthy" : "Check Pressure"
+            insights.append(HealthInsight(title: "Blood Pressure", value: value, trend: trend))
+        }
+
         if insights.isEmpty {
-            insights.append(HealthInsight(title: "HealthKit", value: "Awaiting data", trend: "Grant permissions"))
+            insights.append(HealthInsight(title: "Health Data", value: "Pending", trend: "Enable HealthKit"))
         }
         healthInsights = insights
     }

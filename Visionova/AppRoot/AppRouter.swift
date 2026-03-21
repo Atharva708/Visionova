@@ -8,7 +8,7 @@ struct AppRouter: View {
         ZStack(alignment: .bottomTrailing) {
             Group {
                 if !appState.sessionStore.isAuthenticated {
-                    AuthenticationStack()
+                    LoginView()
                 } else if !appState.onboardingManager.isOnboardingComplete {
                     OnboardingView()
                 } else {
@@ -26,23 +26,6 @@ struct AppRouter: View {
         }
         .sheet(isPresented: $appState.isProfilePresented) {
             ProfileView(viewModel: ProfileViewModel(sessionStore: appState.sessionStore, healthKitManager: appState.healthKitManager))
-        }
-    }
-}
-
-// MARK: - Authentication Stack
-
-private struct AuthenticationStack: View {
-    @EnvironmentObject private var appState: AppState
-    @State private var isShowingSignup = false
-
-    var body: some View {
-        NavigationStack {
-            LoginView(isPresentingSignup: $isShowingSignup)
-                .toolbar(.hidden, for: .navigationBar)
-                .sheet(isPresented: $isShowingSignup) {
-                    SignupView(isPresented: $isShowingSignup)
-                }
         }
     }
 }

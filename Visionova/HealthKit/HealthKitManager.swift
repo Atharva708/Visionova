@@ -18,6 +18,9 @@ final class HealthKitManager {
     private let healthStore = HKHealthStore()
     private let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
     private let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate)!
+    private let glucoseType = HKObjectType.quantityType(forIdentifier: .bloodGlucose)!
+    private let systolicType = HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!
+    private let diastolicType = HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!
 
     func requestPermissions() async throws -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
@@ -25,6 +28,9 @@ final class HealthKitManager {
         let typesToRead: Set<HKObjectType> = [
             sleepType,
             heartRateType,
+            glucoseType,
+            systolicType,
+            diastolicType,
             HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
             HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!
         ]
@@ -86,6 +92,53 @@ final class HealthKitManager {
                 }
                 let unit = HKUnit.count().unitDivided(by: HKUnit.minute())
                 continuation.resume(returning: quantity.doubleValue(for: unit))
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    func fetchBloodGlucose() async throws -> Double {
+        let predicate = HKQuery.predicateForSamples(withStart: Calendar.current.date(byAdding: .day, value: -7, to: Date()), end: Date())
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: glucoseType, predicate: predicate, limit: 1, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let sample = samples?.first as? HKQuantitySample else {
+                    continuation.resume(returning: 0)
+                    return
+                }
+                let unit = HKUnit(from: "mg/dL")
+                continuation.resume(returning: sample.quantity.doubleValue(for: unit))
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    func fetchBloodPressure() async throws -> (systolic: Double, diastolic: Double) {
+        let predicate = HKQuery.predicateForSamples(withStart: Calendar.current.date(byAdding: .day, value: -7, to: Date()), end: Date())
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(sampleType: systolicType, predicate: predicate, limit: 1, sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)]) { _, samples, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                guard let systolicSample = samples?.first as? HKQuantitySample else {
+                    continuation.resume(returning: (0, 0))
+                    return
+                }
+                
+                // Now get the corresponding diastolic
+                let datePredicate = HKQuery.predicateForSamples(withStart: systolicSample.startDate, end: systolicSample.endDate)
+                let diastolicQuery = HKSampleQuery(sampleType: self.diastolicType, predicate: datePredicate, limit: 1, sortDescriptors: nil) { _, dSamples, dError in
+                    guard let diastolicSample = dSamples?.first as? HKQuantitySample else {
+                        continuation.resume(returning: (systolicSample.quantity.doubleValue(for: HKUnit.millimeterOfMercury()), 0))
+                        return
+                    }
+                    continuation.resume(returning: (systolicSample.quantity.doubleValue(for: HKUnit.millimeterOfMercury()), diastolicSample.quantity.doubleValue(for: HKUnit.millimeterOfMercury())))
+                }
+                self.healthStore.execute(diastolicQuery)
             }
             healthStore.execute(query)
         }

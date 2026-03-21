@@ -17,7 +17,7 @@ final class AppState: ObservableObject {
     @Published var healthKitManager: HealthKitManager
 
     init(
-        sessionStore: SessionStore = SessionStore(authManager: SupabaseAuthManager()),
+        sessionStore: SessionStore = SessionStore(authManager: LocalAuthManager()),
         onboardingManager: OnboardingManager = OnboardingManager(),
         healthKitManager: HealthKitManager = HealthKitManager()
     ) {

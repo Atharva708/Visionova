@@ -9,6 +9,9 @@ struct VisioNovaScanApp: App {
         WindowGroup {
             AppRouter()
                 .environmentObject(appState)
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("VisionovaDeepLinkToScan"))) { _ in
+                    appState.selectedTab = .scan
+                }
         }
     }
 }
